@@ -5,6 +5,7 @@ import { useCart } from '@/contexts/CartContext';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import ProBuildLogo from '@/components/ProBuildLogo';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +21,13 @@ export function TopHeader() {
 
   return (
     <header className="sticky top-0 z-30 h-14 border-b bg-background flex items-center gap-3 px-4">
-      {user ? <SidebarTrigger className="lg:hidden" /> : <div className="font-display text-sm font-semibold">Catalog</div>}
+      {user ? (
+        <SidebarTrigger className="lg:hidden" />
+      ) : (
+        <button type="button" className="shrink-0 [&_span]:!text-foreground" onClick={() => navigate('/')}>
+          <ProBuildLogo />
+        </button>
+      )}
 
       {!user && (
         <div className="hidden items-center gap-2 md:flex">
