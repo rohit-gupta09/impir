@@ -19,6 +19,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const navItems = [
   { title: 'Home', url: '/dashboard', icon: Home },
@@ -47,10 +48,15 @@ export function AppSidebar() {
   const { isAdmin } = useIsAdmin();
   const { isHubManager } = useIsHubManager();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   if (!user) {
+    if (!isMobile) {
+      return null;
+    }
+
     return (
-      <Sidebar collapsible="offcanvas" className="border-r-0 md:hidden">
+      <Sidebar collapsible="offcanvas" className="border-r-0">
         <div className="p-4 border-b border-sidebar-border">
           <ProBuildLogo />
         </div>
