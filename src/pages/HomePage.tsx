@@ -183,14 +183,16 @@ export default function HomePage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="flex gap-3">
-        <Button onClick={() => navigate('/products')} className="bg-accent hover:bg-accent/90 text-accent-foreground font-display tracking-wide">
+      <div className={`grid gap-3 ${user ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1 sm:grid-cols-2'}`}>
+        <Button onClick={() => navigate('/products')} className="h-auto min-h-11 justify-start whitespace-normal px-4 py-3 text-left bg-accent hover:bg-accent/90 text-accent-foreground font-display tracking-wide">
           <Package className="w-4 h-4 mr-2" /> BROWSE PRODUCTS
         </Button>
-        <Button variant="outline" onClick={() => navigate('/quotes')} className="font-display tracking-wide">
-          <FileText className="w-4 h-4 mr-2" /> VIEW MY QUOTES
-        </Button>
-        <Button variant="outline" onClick={() => navigate('/quick-quote')} className="font-display tracking-wide">
+        {user && (
+          <Button variant="outline" onClick={() => navigate('/quotes')} className="h-auto min-h-11 justify-start whitespace-normal px-4 py-3 text-left font-display tracking-wide">
+            <FileText className="w-4 h-4 mr-2" /> VIEW MY QUOTES
+          </Button>
+        )}
+        <Button variant="outline" onClick={() => navigate('/quick-quote')} className="h-auto min-h-11 justify-start whitespace-normal px-4 py-3 text-left font-display tracking-wide">
           <FileText className="w-4 h-4 mr-2" /> QUICK QUOTE
         </Button>
       </div>

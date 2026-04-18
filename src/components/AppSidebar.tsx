@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const navItems = [
   { title: 'Home', url: '/dashboard', icon: Home },
@@ -32,6 +33,12 @@ const navItems = [
   { title: 'Contact Us', url: '/contact', icon: Phone },
 ];
 
+const publicNavItems = [
+  { title: 'Home', url: '/', icon: Home },
+  { title: 'Products', url: '/products', icon: Package },
+  { title: 'Quick Quote', url: '/quick-quote', icon: PenSquare },
+];
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
@@ -39,9 +46,47 @@ export function AppSidebar() {
   const { itemCount } = useCart();
   const { isAdmin } = useIsAdmin();
   const { isHubManager } = useIsHubManager();
+  const navigate = useNavigate();
 
   if (!user) {
-    return null;
+    return (
+      <Sidebar collapsible="offcanvas" className="border-r-0 md:hidden">
+        <div className="p-4 border-b border-sidebar-border">
+          <ProBuildLogo />
+        </div>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {publicNavItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end={item.url === '/'}
+                        className="flex items-center gap-3 px-3 py-2 rounded text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors duration-150"
+                        activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
+                      >
+                        <item.icon className="w-5 h-5 shrink-0" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter className="p-3 space-y-2">
+          <Button variant="ghost" className="w-full justify-start" onClick={() => navigate('/login')}>
+            Login
+          </Button>
+          <Button className="w-full justify-start bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => navigate('/signup')}>
+            Sign Up
+          </Button>
+        </SidebarFooter>
+      </Sidebar>
+    );
   }
 
   return (

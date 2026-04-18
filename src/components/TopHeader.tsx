@@ -24,9 +24,12 @@ export function TopHeader() {
       {user ? (
         <SidebarTrigger className="lg:hidden" />
       ) : (
-        <button type="button" className="shrink-0 [&_span]:!text-foreground" onClick={() => navigate('/')}>
-          <ProBuildLogo />
-        </button>
+        <>
+          <SidebarTrigger className="md:hidden" />
+          <button type="button" className="shrink-0 [&_span]:!text-foreground" onClick={() => navigate('/')}>
+            <ProBuildLogo />
+          </button>
+        </>
       )}
 
       {!user && (
