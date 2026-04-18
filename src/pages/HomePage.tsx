@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import ProductImage from '@/components/ProductImage';
 import { Carousel, CarouselApi, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
 import type { CatalogMainCategory } from '@/lib/catalog';
+import { normalizeImageUrl } from '@/lib/utils';
 
 export default function HomePage() {
   const { itemCount } = useCart();
@@ -251,9 +252,12 @@ export default function HomePage() {
                       <div className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-full border bg-gradient-to-br from-white via-white to-muted/40 shadow-sm transition-all duration-200 group-hover:-translate-y-1 group-hover:border-accent/40 group-hover:shadow-lg">
                         {company.banner_image_url || company.logo_url ? (
                           <img
-                            src={company.banner_image_url || company.logo_url}
+                            src={normalizeImageUrl(company.banner_image_url || company.logo_url) || undefined}
                             alt={company.name}
                             className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-[1.04]"
+                            loading="lazy"
+                            decoding="async"
+                            referrerPolicy="no-referrer"
                           />
                         ) : (
                           <div className="flex h-full w-full items-center justify-center rounded-full border border-dashed bg-muted text-sm font-medium text-muted-foreground">

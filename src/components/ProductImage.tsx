@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Package } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, normalizeImageUrl } from '@/lib/utils';
 import { createProductPlaceholderDataUrl, getCategoryFallback } from '@/lib/productImages';
 
 type ProductImageProps = {
@@ -20,18 +20,19 @@ export default function ProductImage({
   imageClassName,
   iconClassName,
 }: ProductImageProps) {
-  const [currentSrc, setCurrentSrc] = useState<string | null>(src || null);
+  const normalizedSrc = normalizeImageUrl(src);
+  const [currentSrc, setCurrentSrc] = useState<string | null>(normalizedSrc);
   const [showIconFallback, setShowIconFallback] = useState(false);
 
   useEffect(() => {
-    setCurrentSrc(src || null);
+    setCurrentSrc(normalizedSrc);
     setShowIconFallback(false);
-  }, [src]);
+  }, [normalizedSrc]);
 
   const showImage = !!currentSrc && !showIconFallback;
 
   const handleError = () => {
-    const categoryFallback = getCategoryFallback(category);
+    const categoryFallback = normalizeImageUrl(getCategoryFallback(category));
     if (currentSrc !== categoryFallback && categoryFallback) {
       setCurrentSrc(categoryFallback);
       return;
@@ -54,6 +55,9 @@ export default function ProductImage({
           alt={alt}
           className={cn('w-full h-full object-cover', imageClassName)}
           onError={handleError}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
         />
       ) : (
         <Package className={cn('text-muted-foreground', iconClassName)} />
