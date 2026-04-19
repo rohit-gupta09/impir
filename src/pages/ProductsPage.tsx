@@ -530,7 +530,7 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button size="sm" className="flex-1 bg-accent text-xs text-accent-foreground hover:bg-accent/90" onClick={() => addToCart(product.id, getQty(product.id))}>
+                  <Button style={{fontSize:".60rem",paddingLeft:".25rem", paddingRight:".25rem"}} size="sm" className="flex-1 bg-accent text-xs text-accent-foreground hover:bg-accent/90" onClick={() => addToCart(product.id, getQty(product.id))}>
                     ADD TO CART
                   </Button>
                   <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={() => toggleWishlist(product.id)}>
