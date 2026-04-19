@@ -255,7 +255,7 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
-      <Card className="border border-destructive/30">
+      {/* <Card className="border border-destructive/30">
         <CardContent className="p-4 flex items-center justify-between">
           <div>
             <p className="font-medium text-sm">Delete Account</p>
@@ -274,7 +274,7 @@ export default function ProfilePage() {
             <Button variant="destructive" onClick={() => toast.error('Please contact support to delete your account')}>Confirm Delete</Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
     </div>
   );
 }
