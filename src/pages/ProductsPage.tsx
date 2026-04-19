@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/pagination';
 import ProductImage from '@/components/ProductImage';
 import type { CatalogMainCategory, CatalogSubcategory } from '@/lib/catalog';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type Product = {
   id: string;
@@ -53,6 +54,7 @@ export default function ProductsPage() {
   const PAGE_SIZE = 12;
   const [searchParams, setSearchParams] = useSearchParams();
   const initialPage = Number(searchParams.get('page') || '1');
+  const isMobile = useIsMobile();
   const { user } = useAuth();
   const { addToCart } = useCart();
   const [products, setProducts] = useState<Product[]>([]);
@@ -542,58 +544,90 @@ export default function ProductsPage() {
       )}
 
       {showProductResults && !loading && totalPages > 1 && (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  if (page > 1) setPage(page - 1);
-                }}
-                className={page === 1 ? 'pointer-events-none opacity-50' : ''}
-              />
-            </PaginationItem>
+        isMobile ? (
+          <Pagination>
+            <PaginationContent className="w-full flex-nowrap justify-between gap-2">
+              <PaginationItem className="min-w-0 flex-1">
+                <PaginationPrevious
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (page > 1) setPage(page - 1);
+                  }}
+                  className={`w-full justify-center px-3 ${page === 1 ? 'pointer-events-none opacity-50' : ''}`}
+                />
+              </PaginationItem>
+              <PaginationItem className="shrink-0">
+                <div className="flex h-9 items-center justify-center rounded-md border px-3 text-xs font-medium whitespace-nowrap">
+                  Page {page} of {totalPages}
+                </div>
+              </PaginationItem>
+              <PaginationItem className="min-w-0 flex-1">
+                <PaginationNext
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (page < totalPages) setPage(page + 1);
+                  }}
+                  className={`w-full justify-center px-3 ${page === totalPages ? 'pointer-events-none opacity-50' : ''}`}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        ) : (
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (page > 1) setPage(page - 1);
+                  }}
+                  className={page === 1 ? 'pointer-events-none opacity-50' : ''}
+                />
+              </PaginationItem>
 
-            {visiblePages.map((pageNumber, index) => {
-              const previous = visiblePages[index - 1];
-              const shouldShowEllipsis = previous && pageNumber - previous > 1;
+              {visiblePages.map((pageNumber, index) => {
+                const previous = visiblePages[index - 1];
+                const shouldShowEllipsis = previous && pageNumber - previous > 1;
 
-              return (
-                <Fragment key={pageNumber}>
-                  {shouldShowEllipsis && (
+                return (
+                  <Fragment key={pageNumber}>
+                    {shouldShowEllipsis && (
+                      <PaginationItem>
+                        <PaginationEllipsis />
+                      </PaginationItem>
+                    )}
                     <PaginationItem>
-                      <PaginationEllipsis />
+                      <PaginationLink
+                        href="#"
+                        isActive={page === pageNumber}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setPage(pageNumber);
+                        }}
+                      >
+                        {pageNumber}
+                      </PaginationLink>
                     </PaginationItem>
-                  )}
-                  <PaginationItem>
-                    <PaginationLink
-                      href="#"
-                      isActive={page === pageNumber}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        setPage(pageNumber);
-                      }}
-                    >
-                      {pageNumber}
-                    </PaginationLink>
-                  </PaginationItem>
-                </Fragment>
-              );
-            })}
+                  </Fragment>
+                );
+              })}
 
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(event) => {
-                  event.preventDefault();
-                  if (page < totalPages) setPage(page + 1);
-                }}
-                className={page === totalPages ? 'pointer-events-none opacity-50' : ''}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (page < totalPages) setPage(page + 1);
+                  }}
+                  className={page === totalPages ? 'pointer-events-none opacity-50' : ''}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )
       )}
 
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>

@@ -131,6 +131,15 @@ export default function QuotesPage() {
       type: 'order',
       reference_id: quote.id,
     });
+    const { error: notificationError } = await supabase.functions.invoke('quote-notifications', {
+      body: {
+        eventType: 'order_placed',
+        quoteId: quote.id,
+      },
+    });
+    if (notificationError) {
+      console.error('Order notification failed', notificationError);
+    }
 
     toast.success(`Order placed for ${quote.quote_number}`);
     setPlacingOrderId(null);

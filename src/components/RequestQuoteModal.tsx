@@ -114,7 +114,7 @@ export default function RequestQuoteModal({ open, onOpenChange }: Props) {
       contact_method: form.contactMethod,
       payment_terms: 'To Be Confirmed',
       quote_number: 'temp',
-    }).select('quote_number').single();
+    }).select('id, quote_number').single();
 
     setLoading(false);
     if (error) { toast.error('Failed to submit quote'); return; }
@@ -125,6 +125,15 @@ export default function RequestQuoteModal({ open, onOpenChange }: Props) {
       type: 'quote',
       reference_id: null,
     });
+    const { error: notificationError } = await supabase.functions.invoke('quote-notifications', {
+      body: {
+        eventType: 'quote_submitted',
+        quoteId: data.id,
+      },
+    });
+    if (notificationError) {
+      console.error('Quote notification failed', notificationError);
+    }
 
     await clearCart();
     setSuccess(data.quote_number);

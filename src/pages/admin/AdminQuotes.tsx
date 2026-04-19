@@ -154,6 +154,16 @@ export default function AdminQuotes() {
 
     if (Object.keys(updates).length === 0) { setSaving(null); return; }
 
+    const nextStatus = statusUpdates[quote.id] || quote.status;
+    const shouldNotifyCustomer =
+      nextStatus === 'Responded' &&
+      (
+        statusUpdates[quote.id] === 'Responded' ||
+        responses[quote.id] !== undefined ||
+        paymentTermsUpdates[quote.id] !== undefined ||
+        !!priceUpdates[quote.id]
+      );
+
     const { error } = await supabase.from('quotes').update(updates).eq('id', quote.id);
     if (error) { toast.error(error.message || 'Failed to update quote'); }
     else {
@@ -169,6 +179,17 @@ export default function AdminQuotes() {
           user_id: quote.user_id,
           message: `Your quote ${quote.quote_number} status changed to "${updates.status}"${updates.status === 'Responded' ? '. Check your quote for pricing details.' : '.'}`,
         });
+      }
+      if (shouldNotifyCustomer) {
+        const { error: notificationError } = await supabase.functions.invoke('quote-notifications', {
+          body: {
+            eventType: 'quote_responded',
+            quoteId: quote.id,
+          },
+        });
+        if (notificationError) {
+          console.error('Quote response notification failed', notificationError);
+        }
       }
       setPriceUpdates(prev => { const n = { ...prev }; delete n[quote.id]; return n; });
       fetchQuotes();

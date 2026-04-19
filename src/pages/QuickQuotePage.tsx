@@ -360,7 +360,7 @@ export default function QuickQuotePage() {
         payment_terms: 'To Be Confirmed',
         quote_number: 'temp',
       })
-      .select('quote_number')
+      .select('id, quote_number')
       .single();
 
     if (error || !data) {
@@ -374,6 +374,15 @@ export default function QuickQuotePage() {
       type: 'quick_quote',
       reference_id: null,
     });
+    const { error: notificationError } = await supabase.functions.invoke('quote-notifications', {
+      body: {
+        eventType: 'quote_submitted',
+        quoteId: data.id,
+      },
+    });
+    if (notificationError) {
+      console.error('Quote notification failed', notificationError);
+    }
 
     setSubmitting(false);
     window.sessionStorage.removeItem(QUICK_QUOTE_DRAFT_KEY);

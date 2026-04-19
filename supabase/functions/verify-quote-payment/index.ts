@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { sendQuoteNotification } from '../_shared/quoteNotifications.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -196,6 +197,22 @@ Deno.serve(async (request) => {
         type: 'payment_received',
         reference_id: quote.id,
       });
+      try {
+        await sendQuoteNotification({
+          config: {
+            supabaseUrl,
+            supabaseServiceRoleKey,
+            resendApiKey: Deno.env.get('RESEND_API_KEY') ?? '',
+            fromEmail: Deno.env.get('NOTIFICATION_FROM_EMAIL') || Deno.env.get('CONTACT_FROM_EMAIL') || 'Romart Notifications <onboarding@resend.dev>',
+            supportEmail: Deno.env.get('SUPPORT_NOTIFICATION_EMAIL') || Deno.env.get('CONTACT_TO_EMAIL') || 'supportromart@gmail.com',
+          },
+          eventType: 'order_placed',
+          quoteId: quote.id,
+          orderId,
+        });
+      } catch (notificationError) {
+        console.error('Order notification failed', notificationError);
+      }
       await supabase.from('order_delivery_events').insert({
         order_id: orderId,
         status: 'Order Confirmed',
