@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
@@ -57,13 +58,6 @@ export default function ProductsPage() {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { addToCart } = useCart();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<string[]>(['All Products']);
-  const [companies, setCompanies] = useState<CompanyOption[]>([]);
-  const [mainCategories, setMainCategories] = useState<CatalogMainCategory[]>([]);
-  const [subcategories, setSubcategories] = useState<CatalogSubcategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [catalogLoading, setCatalogLoading] = useState(true);
   const [search, setSearch] = useState(searchParams.get('search') || '');
   const [category, setCategory] = useState(searchParams.get('category') || 'All Products');
   const [mainCategorySlug, setMainCategorySlug] = useState(searchParams.get('mainCategory') || '');
@@ -72,42 +66,15 @@ export default function ProductsPage() {
   const [company, setCompany] = useState(searchParams.get('company') || 'All Companies');
   const [sort, setSort] = useState('name-asc');
   const [page, setPage] = useState(Number.isFinite(initialPage) && initialPage > 0 ? initialPage : 1);
-  const [totalProducts, setTotalProducts] = useState(0);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
   const hasMountedFiltersRef = useRef(false);
 
-  const selectedMainCategory = useMemo(
-    () => mainCategories.find((item) => item.slug === mainCategorySlug) || null,
-    [mainCategories, mainCategorySlug]
-  );
-  const selectedSubcategory = useMemo(
-    () => subcategories.find((item) => item.slug === subCategorySlug && item.main_category_id === selectedMainCategory?.id) || null,
-    [selectedMainCategory?.id, subCategorySlug, subcategories]
-  );
-  const visibleSubcategories = useMemo(
-    () => subcategories.filter((item) => item.main_category_id === selectedMainCategory?.id && item.is_active),
-    [selectedMainCategory?.id, subcategories]
-  );
-
-  const showingCatalogLanding =
-    !selectedMainCategory &&
-    category === 'All Products' &&
-    !search.trim() &&
-    !companyId &&
-    company === 'All Companies';
-
-  const showProductResults =
-    !selectedMainCategory ||
-    !!selectedSubcategory ||
-    !!search.trim() ||
-    !!companyId ||
-    company !== 'All Companies';
-
-  useEffect(() => {
-    const fetchLookupData = async () => {
+  const lookupQuery = useQuery({
+    queryKey: ['product-lookups'],
+    queryFn: async () => {
       const [categoryRes, companyRes, productCompanyRes, mainCategoryRes, subcategoryRes] = await Promise.all([
         supabase.from('categories').select('name').order('display_order'),
         supabase.from('companies').select('id, name').eq('is_active', true).order('name'),
@@ -140,17 +107,47 @@ export default function ProductsPage() {
         }
       }
 
-      const companyOptions = Array.from(companyMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+      return {
+        categories: ['All Products', ...((categoryRes.data || []).map((item) => item.name))],
+        companies: Array.from(companyMap.values()).sort((a, b) => a.name.localeCompare(b.name)),
+        mainCategories: (mainCategoryRes.data || []) as CatalogMainCategory[],
+        subcategories: (subcategoryRes.data || []) as CatalogSubcategory[],
+      };
+    },
+  });
 
-      setCategories(['All Products', ...((categoryRes.data || []).map((item) => item.name))]);
-      setCompanies(companyOptions);
-      setMainCategories((mainCategoryRes.data || []) as CatalogMainCategory[]);
-      setSubcategories((subcategoryRes.data || []) as CatalogSubcategory[]);
-      setCatalogLoading(false);
-    };
+  const categories = lookupQuery.data?.categories ?? ['All Products'];
+  const companies = lookupQuery.data?.companies ?? [];
+  const mainCategories = lookupQuery.data?.mainCategories ?? [];
+  const subcategories = lookupQuery.data?.subcategories ?? [];
+  const catalogLoading = lookupQuery.isLoading;
 
-    fetchLookupData();
-  }, []);
+  const selectedMainCategory = useMemo(
+    () => mainCategories.find((item) => item.slug === mainCategorySlug) || null,
+    [mainCategories, mainCategorySlug]
+  );
+  const selectedSubcategory = useMemo(
+    () => subcategories.find((item) => item.slug === subCategorySlug && item.main_category_id === selectedMainCategory?.id) || null,
+    [selectedMainCategory?.id, subCategorySlug, subcategories]
+  );
+  const visibleSubcategories = useMemo(
+    () => subcategories.filter((item) => item.main_category_id === selectedMainCategory?.id && item.is_active),
+    [selectedMainCategory?.id, subcategories]
+  );
+
+  const showingCatalogLanding =
+    !selectedMainCategory &&
+    category === 'All Products' &&
+    !search.trim() &&
+    !companyId &&
+    company === 'All Companies';
+
+  const showProductResults =
+    !selectedMainCategory ||
+    !!selectedSubcategory ||
+    !!search.trim() ||
+    !!companyId ||
+    company !== 'All Companies';
 
   useEffect(() => {
     if (!companyId) return;
@@ -158,9 +155,22 @@ export default function ProductsPage() {
     if (matchedCompany) setCompany(matchedCompany.name);
   }, [companyId, companies]);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
+  const productsQuery = useQuery({
+    queryKey: [
+      'products',
+      {
+        category,
+        company,
+        companyId,
+        mainCategoryId: selectedMainCategory?.id ?? null,
+        page,
+        search: search.trim(),
+        sort,
+        subCategoryId: selectedSubcategory?.id ?? null,
+      },
+    ],
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
       const matchedCompany = companies.find((item) => item.id === companyId);
       const selectedCompanyName = companyId.startsWith(COMPANY_NAME_PREFIX)
         ? companyId.slice(COMPANY_NAME_PREFIX.length)
@@ -197,19 +207,20 @@ export default function ProductsPage() {
       const { data, count, error } = await query.range(rangeFrom, rangeTo);
       if (error) {
         toast.error('Failed to load products');
-        setProducts([]);
-        setTotalProducts(0);
-        setLoading(false);
-        return;
+        return { products: [] as Product[], totalProducts: 0 };
       }
 
-      setProducts((data || []) as Product[]);
-      setTotalProducts(count || 0);
-      setLoading(false);
-    };
+      return {
+        products: (data || []) as Product[],
+        totalProducts: count || 0,
+      };
+    },
+    enabled: !lookupQuery.isLoading,
+  });
 
-    fetchProducts();
-  }, [category, companies, company, companyId, page, search, selectedMainCategory, selectedSubcategory, sort]);
+  const products = productsQuery.data?.products ?? [];
+  const totalProducts = productsQuery.data?.totalProducts ?? 0;
+  const loading = productsQuery.isLoading;
 
   useEffect(() => {
     const next = new URLSearchParams(searchParams);

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
@@ -16,28 +17,13 @@ import { normalizeImageUrl } from '@/lib/utils';
 export default function HomePage() {
   const { itemCount } = useCart();
   const navigate = useNavigate();
-  const [stats, setStats] = useState({ totalQuotes: 0, pending: 0, responded: 0 });
-  const [featured, setFeatured] = useState<any[]>([]);
-  const [companies, setCompanies] = useState<any[]>([]);
-  const [mainCategories, setMainCategories] = useState<CatalogMainCategory[]>([]);
-  const [promoBanners, setPromoBanners] = useState<any[]>([]);
   const [bannerApi, setBannerApi] = useState<CarouselApi>();
   const [activeBanner, setActiveBanner] = useState(0);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  const handlePromoBannerClick = (banner: any) => {
-    if (banner.link_type === 'company' && banner.link_value) navigate(`/products?company=${encodeURIComponent(banner.link_value)}`);
-    else if (banner.link_type === 'category' && banner.link_value) navigate(`/products?category=${encodeURIComponent(banner.link_value)}`);
-    else if (banner.link_type === 'quick_quote') navigate('/quick-quote');
-    else if (banner.link_type === 'quotes') navigate('/quotes');
-    else if (banner.link_type === 'external' && banner.link_value) window.open(banner.link_value, '_blank', 'noopener,noreferrer');
-    else navigate('/products');
-  };
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
+  const homeQuery = useQuery({
+    queryKey: ['home-page', user?.id ?? 'guest'],
+    queryFn: async () => {
       const quoteRequest = user
         ? supabase.from('quotes').select('status').eq('user_id', user.id)
         : Promise.resolve({ data: [], error: null });
@@ -49,20 +35,38 @@ export default function HomePage() {
         supabase.from('promo_banners').select('*').eq('is_active', true).eq('position', 'home').order('display_order').limit(6),
         supabase.from('catalog_main_categories').select('*').eq('is_active', true).order('display_order').limit(6),
       ]);
+
       const quotes = quotesRes.data || [];
-      setStats({
-        totalQuotes: quotes.length,
-        pending: quotes.filter(q => q.status === 'Pending').length,
-        responded: quotes.filter(q => q.status === 'Responded').length,
-      });
-      setFeatured(productsRes.data || []);
-      setCompanies(companiesRes.data || []);
-      setPromoBanners(promoRes.data || []);
-      setMainCategories((mainCategoriesRes.data || []) as CatalogMainCategory[]);
-      setLoading(false);
-    };
-    fetchData();
-  }, [user]);
+
+      return {
+        stats: {
+          totalQuotes: quotes.length,
+          pending: quotes.filter((q) => q.status === 'Pending').length,
+          responded: quotes.filter((q) => q.status === 'Responded').length,
+        },
+        featured: productsRes.data || [],
+        companies: companiesRes.data || [],
+        promoBanners: promoRes.data || [],
+        mainCategories: (mainCategoriesRes.data || []) as CatalogMainCategory[],
+      };
+    },
+  });
+
+  const stats = homeQuery.data?.stats ?? { totalQuotes: 0, pending: 0, responded: 0 };
+  const featured = homeQuery.data?.featured ?? [];
+  const companies = homeQuery.data?.companies ?? [];
+  const mainCategories = homeQuery.data?.mainCategories ?? [];
+  const promoBanners = homeQuery.data?.promoBanners ?? [];
+  const loading = homeQuery.isLoading;
+
+  const handlePromoBannerClick = (banner: any) => {
+    if (banner.link_type === 'company' && banner.link_value) navigate(`/products?company=${encodeURIComponent(banner.link_value)}`);
+    else if (banner.link_type === 'category' && banner.link_value) navigate(`/products?category=${encodeURIComponent(banner.link_value)}`);
+    else if (banner.link_type === 'quick_quote') navigate('/quick-quote');
+    else if (banner.link_type === 'quotes') navigate('/quotes');
+    else if (banner.link_type === 'external' && banner.link_value) window.open(banner.link_value, '_blank', 'noopener,noreferrer');
+    else navigate('/products');
+  };
 
   useEffect(() => {
     if (!bannerApi || promoBanners.length <= 1) return;
