@@ -8,10 +8,12 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { useIsHubManager } from "@/hooks/useIsHubManager";
+import { useIsSupplier } from "@/hooks/useIsSupplier";
 
 const DashboardLayout = lazy(() => import("@/components/DashboardLayout"));
 const AdminLayout = lazy(() => import("@/components/AdminLayout"));
 const HubLayout = lazy(() => import("@/components/HubLayout"));
+const SupplierLayout = lazy(() => import("@/components/SupplierLayout"));
 const LoginPage = lazy(() => import("@/pages/LoginPage"));
 const SignUpPage = lazy(() => import("@/pages/SignUpPage"));
 const ForgotPasswordPage = lazy(() => import("@/pages/ForgotPasswordPage"));
@@ -40,6 +42,7 @@ const AdminOffers = lazy(() => import("@/pages/admin/AdminOffers"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const PartnerApplicationPage = lazy(() => import("@/pages/PartnerApplicationPage"));
 const HubDashboard = lazy(() => import("@/pages/hub/HubDashboard"));
+const SupplierDashboard = lazy(() => import("@/pages/supplier/SupplierDashboard"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -82,6 +85,15 @@ function HubRoute({ children }: { children: React.ReactNode }) {
   if (authLoading || roleLoading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" /></div>;
   if (!user) return <Navigate to="/login" replace />;
   if (!isHubManager) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+}
+
+function SupplierRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading: authLoading } = useAuth();
+  const { isSupplier, loading: roleLoading } = useIsSupplier();
+  if (authLoading || roleLoading) return <div className="min-h-screen flex items-center justify-center"><div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin" /></div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!isSupplier) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
@@ -138,6 +150,9 @@ const App = () => (
                 </Route>
                 <Route element={<HubRoute><HubLayout /></HubRoute>}>
                   <Route path="/hub" element={<HubDashboard />} />
+                </Route>
+                <Route element={<SupplierRoute><SupplierLayout /></SupplierRoute>}>
+                  <Route path="/supplier" element={<SupplierDashboard />} />
                 </Route>
                 <Route path="*" element={<NotFound />} />
               </Routes>

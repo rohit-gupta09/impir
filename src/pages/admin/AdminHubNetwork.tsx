@@ -8,6 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
+type MatchedUserProfile = {
+  user_id: string;
+  full_name: string;
+  email: string | null;
+  phone: string | null;
+};
+
 const emptyHubForm = {
   city_name: '',
   state: '',
@@ -27,6 +34,30 @@ export default function AdminHubNetwork() {
   const [hubForm, setHubForm] = useState(emptyHubForm);
   const [transfer, setTransfer] = useState({ from_hub_id: '', to_hub_id: '', product_id: '', quantity: '1', notes: '' });
   const [reviewingApplicationId, setReviewingApplicationId] = useState<string | null>(null);
+
+  const findLinkedUserId = async (application: any) => {
+    const email = application.email?.trim();
+    const phone = application.phone_number?.trim();
+
+    if (!email && !phone) return null;
+
+    const filters: string[] = [];
+    if (email) filters.push(`email.ilike.${email}`);
+    if (phone) filters.push(`phone.eq.${phone}`);
+
+    const { data, error } = await (supabase as any)
+      .from('profiles')
+      .select('user_id, full_name, email, phone')
+      .or(filters.join(','));
+
+    if (error) {
+      toast.error(error.message || 'Failed to match supplier with a user account');
+      return null;
+    }
+
+    const matches = (data || []) as MatchedUserProfile[];
+    return matches.length === 1 ? matches[0].user_id : null;
+  };
 
   const load = async () => {
     setLoading(true);
@@ -104,8 +135,11 @@ export default function AdminHubNetwork() {
     setReviewingApplicationId(application.id);
 
     let approvedSupplierId: string | null = null;
+    let linkedUserId = application.user_id || null;
 
     if (nextStatus === 'approved') {
+      if (!linkedUserId) linkedUserId = await findLinkedUserId(application);
+
       const existingSupplierResponse = await supabase
         .from('suppliers')
         .select('id')
@@ -121,12 +155,19 @@ export default function AdminHubNetwork() {
       approvedSupplierId = existingSupplierResponse.data?.id || null;
 
       if (!approvedSupplierId) {
-        const insertSupplierResponse = await supabase
+        const insertSupplierResponse = await (supabase as any)
           .from('suppliers')
           .insert({
             name: application.name,
             contact_person: application.name,
             phone: application.phone_number,
+            email: application.email || null,
+            user_id: linkedUserId,
+            address_line1: application.address_line1 || null,
+            city: application.city || null,
+            state: application.state || null,
+            pincode: application.pincode || null,
+            source_application_id: application.id,
             notes: [
               `Approved from supplier partner application.`,
               `City: ${application.city}`,
@@ -146,6 +187,38 @@ export default function AdminHubNetwork() {
         }
 
         approvedSupplierId = insertSupplierResponse.data.id;
+      } else {
+        const { error: supplierUpdateError } = await (supabase as any)
+          .from('suppliers')
+          .update({
+            email: application.email || null,
+            user_id: linkedUserId,
+            address_line1: application.address_line1 || null,
+            city: application.city || null,
+            state: application.state || null,
+            pincode: application.pincode || null,
+            source_application_id: application.id,
+            is_active: true,
+          })
+          .eq('id', approvedSupplierId);
+
+        if (supplierUpdateError) {
+          toast.error(supplierUpdateError.message || 'Failed to link supplier to application');
+          setReviewingApplicationId(null);
+          return;
+        }
+      }
+
+      if (linkedUserId) {
+        const { error: roleError } = await (supabase as any)
+          .from('user_roles')
+          .upsert({ user_id: linkedUserId, role: 'supplier' }, { onConflict: 'user_id,role' });
+
+        if (roleError) {
+          toast.error(roleError.message || 'Failed to grant supplier access');
+          setReviewingApplicationId(null);
+          return;
+        }
       }
     }
 
@@ -154,6 +227,8 @@ export default function AdminHubNetwork() {
       .update({
         status: nextStatus,
         reviewed_at: new Date().toISOString(),
+        reviewed_by: (await supabase.auth.getUser()).data.user?.id || null,
+        user_id: linkedUserId,
         approved_supplier_id: nextStatus === 'approved' ? approvedSupplierId : null,
       })
       .eq('id', application.id);
@@ -163,6 +238,13 @@ export default function AdminHubNetwork() {
     if (error) {
       toast.error(error.message || `Failed to ${nextStatus} application`);
       return;
+    }
+
+    if (linkedUserId) {
+      const message = nextStatus === 'approved'
+        ? 'Your supplier application has been approved. You can now open the Supplier Panel and list your products.'
+        : 'Your supplier application was reviewed but not approved. Our team may contact you for more details.';
+      await (supabase as any).from('notifications').insert({ user_id: linkedUserId, message });
     }
 
     toast.success(nextStatus === 'approved' ? 'Application approved and supplier added' : 'Application rejected');
@@ -292,11 +374,18 @@ export default function AdminHubNetwork() {
                 </div>
               </div>
               <p className="text-sm text-muted-foreground">{application.current_business_type}</p>
+              {application.email ? <p className="text-sm">Email: {application.email}</p> : null}
               <p className="text-sm">Phone: {application.phone_number}</p>
+              <p className="text-sm">Address: {[application.address_line1, application.city, application.state, application.pincode].filter(Boolean).join(', ') || '—'}</p>
               <p className="text-sm">Product types they deal in: {application.monthly_hardware_purchases}</p>
               <p className="text-sm">Shop/Godown: {application.has_shop_or_godown ? 'Yes' : 'No'}</p>
+              {application.user_id ? (
+                <p className="text-xs text-muted-foreground">Linked login detected. Supplier portal access will be enabled on approval.</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">If email or phone exactly matches an existing user account, the system will link supplier access automatically on approval. Otherwise admin can link the account later from Supplier Management.</p>
+              )}
               {application.status === 'approved' && application.approved_supplier_id ? (
-                <p className="text-xs text-muted-foreground">Added to supplier database.</p>
+                <p className="text-xs text-muted-foreground">Added to supplier database{application.user_id ? ' and supplier portal enabled.' : '. Portal access can still be linked later if needed.'}</p>
               ) : null}
             </div>
           ))}

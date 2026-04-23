@@ -1,9 +1,10 @@
-import { Home, Package, ShoppingCart, FileText, Heart, User, Phone, LogOut, Shield, ShoppingBag, Boxes, PenSquare } from 'lucide-react';
+import { Home, Package, ShoppingCart, FileText, Heart, User, Phone, LogOut, Shield, ShoppingBag, Boxes, PenSquare, Truck } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { useIsAdmin } from '@/hooks/useIsAdmin';
 import { useIsHubManager } from '@/hooks/useIsHubManager';
+import { useIsSupplier } from '@/hooks/useIsSupplier';
 import ProBuildLogo from '@/components/ProBuildLogo';
 import {
   Sidebar,
@@ -47,6 +48,7 @@ export function AppSidebar() {
   const { itemCount } = useCart();
   const { isAdmin } = useIsAdmin();
   const { isHubManager } = useIsHubManager();
+  const { isSupplier } = useIsSupplier();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
@@ -154,6 +156,18 @@ export function AppSidebar() {
             >
               <Package className="w-5 h-5 shrink-0" />
               {!collapsed && <span>Hub Panel</span>}
+            </NavLink>
+          </SidebarMenuButton>
+        )}
+        {isSupplier && (
+          <SidebarMenuButton asChild>
+            <NavLink
+              to="/supplier"
+              className="flex items-center gap-3 px-3 py-2 rounded text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors duration-150"
+              activeClassName="bg-sidebar-accent text-sidebar-foreground font-medium"
+            >
+              <Truck className="w-5 h-5 shrink-0" />
+              {!collapsed && <span>Supplier Panel</span>}
             </NavLink>
           </SidebarMenuButton>
         )}
