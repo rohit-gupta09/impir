@@ -38,7 +38,7 @@ export default function ContactPage() {
             <CardContent className="p-5 space-y-4">
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-accent mt-0.5 shrink-0" />
-                <div><p className="font-medium text-sm">Address</p><p className="text-xs text-muted-foreground">Tej mandi, Alwar</p></div>
+                <div><p className="font-medium text-sm">Address</p><p className="text-xs text-muted-foreground">Alwar</p></div>
               </div>
               <div className="flex items-start gap-3">
                 <Phone className="w-5 h-5 text-accent mt-0.5 shrink-0" />

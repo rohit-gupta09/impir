@@ -75,7 +75,7 @@ export function PlatformFooter() {
             </div>
             <div className="flex items-start gap-3">
               <MapPin className="mt-0.5 h-4 w-4 text-accent" />
-              <span>Tej mandi, Alwar</span>
+              <span>Alwar</span>
             </div>
           </div>
         </div>
