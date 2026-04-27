@@ -43,6 +43,7 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const PartnerApplicationPage = lazy(() => import("@/pages/PartnerApplicationPage"));
 const HubDashboard = lazy(() => import("@/pages/hub/HubDashboard"));
 const SupplierDashboard = lazy(() => import("@/pages/supplier/SupplierDashboard"));
+const AuthCallback = lazy(() => import("@/pages/AuthCallback"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -124,6 +125,7 @@ const App = () => (
                 <Route path="/signup" element={<PublicRoute><SignUpPage /></PublicRoute>} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route path="/partner" element={<PartnerApplicationPage />} />
                 <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                   <Route path="/dashboard" element={<HomePage />} />

@@ -40,11 +40,17 @@ export default function SignUpPage() {
 
   const normalizePhone = (value: string) => value.replace(/\D/g, '');
 
+  // useEffect(() => {
+  //   if (!authLoading && user) {
+  //     navigate(nextPath, { replace: true });
+  //   }
+  // }, [authLoading, navigate, nextPath, user]);
+
   useEffect(() => {
-    if (!authLoading && user) {
-      navigate(nextPath, { replace: true });
-    }
-  }, [authLoading, navigate, nextPath, user]);
+  if (!authLoading && user && location.pathname !== "/auth/callback") {
+    navigate(nextPath, { replace: true });
+  }
+}, [authLoading, navigate, nextPath, user, location.pathname]);
 
   const update = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setForm((current) => ({ ...current, [field]: event.target.value }));
@@ -122,7 +128,8 @@ export default function SignUpPage() {
           designation: form.designation,
           gstin: normalizeGSTIN(form.gstin),
         },
-        emailRedirectTo: window.location.origin,
+        // emailRedirectTo: window.location.origin,
+                emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
