@@ -12,7 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, CheckCircle, Package } from 'lucide-react';
 import { toast } from 'sonner';
+import SavedAddressSelector, { saveQuoteAddress } from '@/components/SavedAddressSelector';
 import { resolveRoutingForItems, type RoutingResult } from '@/lib/hubNetwork';
+import { queueQuoteSubmittedWhatsapp } from '@/lib/whatsappNotifications';
 
 interface Props {
   open: boolean;
@@ -26,6 +28,8 @@ export default function RequestQuoteModal({ open, onOpenChange }: Props) {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [routing, setRouting] = useState<RoutingResult | null>(null);
+  const [saveAddress, setSaveAddress] = useState(false);
+  const [addressLabel, setAddressLabel] = useState('Site address');
   const [form, setForm] = useState({
     company: profile?.company_name || '',
     projectType: 'Residential',
@@ -119,21 +123,30 @@ export default function RequestQuoteModal({ open, onOpenChange }: Props) {
     setLoading(false);
     if (error) { toast.error('Failed to submit quote'); return; }
 
+    if (saveAddress) {
+      await saveQuoteAddress(user.id, {
+        addressLine1: form.addressLine1,
+        city: form.city,
+        state: form.state,
+        pincode: form.pincode,
+      }, addressLabel);
+    }
+
     // Notify admins
     await supabase.from('admin_notifications').insert({
       message: `New quote ${data.quote_number} submitted by ${profile?.full_name || 'a customer'} with ${items.length} items.`,
       type: 'quote',
       reference_id: null,
     });
-    const { error: notificationError } = await supabase.functions.invoke('quote-notifications', {
-      body: {
-        eventType: 'quote_submitted',
-        quoteId: data.id,
-      },
+    queueQuoteSubmittedWhatsapp({
+      quoteNumber: data.quote_number,
+      customerName: profile?.full_name || '',
+      customerPhone: profile?.whatsapp_opt_in !== false ? profile?.phone || '' : '',
+      companyName: form.company,
+      itemCount: items.length,
+      projectType: form.projectType,
+      status: 'Pending',
     });
-    if (notificationError) {
-      console.error('Quote notification failed', notificationError);
-    }
 
     await clearCart();
     setSuccess(data.quote_number);
@@ -212,6 +225,21 @@ export default function RequestQuoteModal({ open, onOpenChange }: Props) {
             <Label>Project Description / Special Requirements</Label>
             <Textarea value={form.description} onChange={e => update('description', e.target.value)} placeholder="Any special requirements..." rows={3} />
           </div>
+
+          <SavedAddressSelector
+            userId={user?.id || null}
+            value={{
+              addressLine1: form.addressLine1,
+              city: form.city,
+              state: form.state,
+              pincode: form.pincode,
+            }}
+            onChange={(address) => setForm((prev) => ({ ...prev, ...address }))}
+            saveAddress={saveAddress}
+            onSaveAddressChange={setSaveAddress}
+            addressLabel={addressLabel}
+            onAddressLabelChange={setAddressLabel}
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1">

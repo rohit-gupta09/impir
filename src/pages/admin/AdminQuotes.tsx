@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ChevronDown, Send, IndianRupee, User, Mail, Phone, Building2, History } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { queueQuoteRespondedWhatsapp } from '@/lib/whatsappNotifications';
 
 type QuoteProduct = {
   name: string; sku: string; quantity: number; unit: string;
@@ -24,6 +25,7 @@ type UserProfile = {
   phone: string | null;
   company_name: string | null;
   avatar_url: string | null;
+  whatsapp_opt_in?: boolean | null;
 };
 
 type Quote = {
@@ -105,7 +107,7 @@ export default function AdminQuotes() {
     if (userIds.length > 0) {
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('user_id, business_account_id, designation, full_name, email, phone, company_name, avatar_url')
+        .select('user_id, business_account_id, designation, full_name, email, phone, company_name, avatar_url, whatsapp_opt_in')
         .in('user_id', userIds);
 
       const profileMap: Record<string, UserProfile> = {};
@@ -181,15 +183,24 @@ export default function AdminQuotes() {
         });
       }
       if (shouldNotifyCustomer) {
-        const { error: notificationError } = await supabase.functions.invoke('quote-notifications', {
-          body: {
-            eventType: 'quote_responded',
-            quoteId: quote.id,
-          },
+        const profile = userProfiles[quote.user_id];
+        const nextProducts = updates.products || quote.products || [];
+        const quoteTotal = nextProducts.reduce((sum: number, product: QuoteProduct) => {
+          const unitPrice = Number(product.unit_price || 0);
+          return sum + unitPrice * Number(product.quantity || 1);
+        }, 0);
+
+        queueQuoteRespondedWhatsapp({
+          quoteNumber: quote.quote_number,
+          customerName: quote.requested_by_name || profile?.full_name || '',
+          customerPhone: profile?.whatsapp_opt_in !== false ? quote.requested_by_phone || profile?.phone || '' : '',
+          companyName: quote.business_name || profile?.company_name || '',
+          itemCount: nextProducts.length,
+          projectType: quote.project_type,
+          status: nextStatus,
+          adminResponse: updates.admin_response ?? quote.admin_response,
+          quoteTotal,
         });
-        if (notificationError) {
-          console.error('Quote response notification failed', notificationError);
-        }
       }
       setPriceUpdates(prev => { const n = { ...prev }; delete n[quote.id]; return n; });
       fetchQuotes();

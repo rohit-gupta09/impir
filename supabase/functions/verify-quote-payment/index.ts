@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { sendQuoteNotification } from '../_shared/quoteNotifications.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -197,21 +196,22 @@ Deno.serve(async (request) => {
         type: 'payment_received',
         reference_id: quote.id,
       });
-      try {
-        await sendQuoteNotification({
-          config: {
-            supabaseUrl,
-            supabaseServiceRoleKey,
-            resendApiKey: Deno.env.get('RESEND_API_KEY') ?? '',
-            fromEmail: Deno.env.get('NOTIFICATION_FROM_EMAIL') || Deno.env.get('CONTACT_FROM_EMAIL') || 'Romart Notifications <onboarding@resend.dev>',
-            supportEmail: Deno.env.get('SUPPORT_NOTIFICATION_EMAIL') || Deno.env.get('CONTACT_TO_EMAIL') || 'supportromart@gmail.com',
-          },
-          eventType: 'order_placed',
-          quoteId: quote.id,
-          orderId,
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, phone, whatsapp_opt_in')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (profile?.phone && profile?.whatsapp_opt_in !== false) {
+        await supabase.rpc('queue_whatsapp_outbound_message', {
+          _phone: profile.phone,
+          _message: [
+            `Order confirmed for quote ${quote.quote_number}.`,
+            `Amount: ₹${Math.round(Number(paymentAttempt.payable_amount || 0)).toLocaleString('en-IN')}`,
+            'We will share delivery updates here.',
+          ].join('\n'),
+          _draft_id: null,
         });
-      } catch (notificationError) {
-        console.error('Order notification failed', notificationError);
       }
       await supabase.from('order_delivery_events').insert({
         order_id: orderId,

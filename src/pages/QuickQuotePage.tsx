@@ -14,7 +14,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
+import SavedAddressSelector, { saveQuoteAddress } from '@/components/SavedAddressSelector';
 import { resolveRoutingForItems, type RoutingResult } from '@/lib/hubNetwork';
+import { queueQuoteSubmittedWhatsapp } from '@/lib/whatsappNotifications';
 
 type Product = {
   id: string;
@@ -70,6 +72,8 @@ export default function QuickQuotePage() {
   const [routing, setRouting] = useState<RoutingResult | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [successQuoteNumber, setSuccessQuoteNumber] = useState<string | null>(null);
+  const [saveAddress, setSaveAddress] = useState(false);
+  const [addressLabel, setAddressLabel] = useState('Site address');
   const [form, setForm] = useState({
     requesterName: profile?.full_name || '',
     requesterEmail: user?.email || profile?.email || '',
@@ -374,14 +378,23 @@ export default function QuickQuotePage() {
       type: 'quick_quote',
       reference_id: null,
     });
-    const { error: notificationError } = await supabase.functions.invoke('quote-notifications', {
-      body: {
-        eventType: 'quote_submitted',
-        quoteId: data.id,
-      },
+    queueQuoteSubmittedWhatsapp({
+      quoteNumber: data.quote_number,
+      customerName: form.requesterName || profile?.full_name || '',
+      customerPhone: profile?.whatsapp_opt_in !== false ? form.requesterPhone || profile?.phone || '' : '',
+      companyName: form.company,
+      itemCount: productsData.length,
+      projectType: form.projectType,
+      status: 'Pending',
     });
-    if (notificationError) {
-      console.error('Quote notification failed', notificationError);
+
+    if (saveAddress) {
+      await saveQuoteAddress(user.id, {
+        addressLine1: form.addressLine1,
+        city: form.city,
+        state: form.state,
+        pincode: form.pincode,
+      }, addressLabel);
     }
 
     setSubmitting(false);
@@ -691,6 +704,21 @@ export default function QuickQuotePage() {
                 rows={3}
               />
             </div>
+
+            <SavedAddressSelector
+              userId={user?.id || null}
+              value={{
+                addressLine1: form.addressLine1,
+                city: form.city,
+                state: form.state,
+                pincode: form.pincode,
+              }}
+              onChange={(address) => setForm((current) => ({ ...current, ...address }))}
+              saveAddress={saveAddress}
+              onSaveAddressChange={setSaveAddress}
+              addressLabel={addressLabel}
+              onAddressLabelChange={setAddressLabel}
+            />
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2 space-y-2">

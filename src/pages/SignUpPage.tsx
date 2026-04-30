@@ -4,6 +4,7 @@ import { Building2, CheckCircle2, Eye, EyeOff, Loader2, UserRound } from 'lucide
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { normalizeGSTIN } from '@/lib/businessAccounts';
+import { queueSignupWhatsapp } from '@/lib/whatsappNotifications';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -146,10 +147,22 @@ export default function SignUpPage() {
     }
 
     if (data.session) {
+      queueSignupWhatsapp({
+        fullName: form.fullName,
+        phone: form.phone,
+        companyName: form.company,
+        accountType: 'User/Supplier',
+      });
       toast.success('Account created');
       return;
     }
 
+    queueSignupWhatsapp({
+      fullName: form.fullName,
+      phone: form.phone,
+      companyName: form.company,
+      accountType: 'User/Supplier',
+    });
     toast.success('Account created. Check your email to confirm your account.');
   };
 

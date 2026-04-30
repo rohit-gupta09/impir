@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { FileText, ChevronDown, ShoppingBag } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { queueOrderPlacedWhatsapp } from '@/lib/whatsappNotifications';
 
 type QuoteProduct = {
   name: string;
@@ -52,7 +53,7 @@ const formatINR = (amount: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(amount);
 
 export default function QuotesPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,15 +132,16 @@ export default function QuotesPage() {
       type: 'order',
       reference_id: quote.id,
     });
-    const { error: notificationError } = await supabase.functions.invoke('quote-notifications', {
-      body: {
-        eventType: 'order_placed',
-        quoteId: quote.id,
-      },
+    queueOrderPlacedWhatsapp({
+      quoteNumber: quote.quote_number,
+      customerName: profile?.full_name || '',
+      customerPhone: profile?.whatsapp_opt_in !== false ? profile?.phone || '' : '',
+      companyName: profile?.company_name || '',
+      itemCount: quote.products.length,
+      projectType: quote.project_type,
+      status: 'Accepted',
+      quoteTotal: totalAmount,
     });
-    if (notificationError) {
-      console.error('Order notification failed', notificationError);
-    }
 
     toast.success(`Order placed for ${quote.quote_number}`);
     setPlacingOrderId(null);
