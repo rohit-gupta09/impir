@@ -68,7 +68,7 @@ export default function WishlistPage() {
               <p className="text-xs text-muted-foreground mb-3">{item.product.unit}</p>
               <div className="flex gap-2">
                 <Button size="sm" className="flex-1 bg-accent hover:bg-accent/90 text-accent-foreground text-xs font-display" onClick={() => addToCart(item.product_id)}>
-                  <ShoppingCart className="w-3 h-3 mr-1" /> ADD TO CART
+                  <ShoppingCart className="w-3 h-3 mr-1" /> ADD TO QUOTE
                 </Button>
                 <Button variant="outline" size="icon" className="h-8 w-8 text-destructive" onClick={() => removeFromWishlist(item.product_id)}>
                   <Trash2 className="w-4 h-4" />

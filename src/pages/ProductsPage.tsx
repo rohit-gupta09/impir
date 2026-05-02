@@ -542,7 +542,7 @@ export default function ProductsPage() {
 
                 <div className="flex gap-2">
                   <Button style={{fontSize:".60rem",paddingLeft:".25rem", paddingRight:".25rem"}} size="sm" className="flex-1 bg-accent text-xs text-accent-foreground hover:bg-accent/90" onClick={() => addToCart(product.id, getQty(product.id))}>
-                    ADD TO CART
+                    ADD TO QUOTE
                   </Button>
                   <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" onClick={() => toggleWishlist(product.id)}>
                     <Heart className={`h-4 w-4 ${wishlist.has(product.id) ? 'fill-accent text-accent' : ''}`} />
@@ -670,7 +670,7 @@ export default function ProductsPage() {
 
                 <div className="flex gap-2">
                   <Button className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => { addToCart(selected.id, getQty(selected.id)); setSelected(null); }}>
-                    ADD TO CART
+                    ADD TO QUOTE
                   </Button>
                   <Button variant="outline" onClick={() => toggleWishlist(selected.id)}>
                     <Heart className={`mr-2 h-4 w-4 ${wishlist.has(selected.id) ? 'fill-accent text-accent' : ''}`} />
